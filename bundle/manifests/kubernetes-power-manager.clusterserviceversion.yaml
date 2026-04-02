@@ -108,7 +108,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-03-21T18:32:19Z"
+    createdAt: "2026-04-02T18:04:35Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: kubernetes-power-manager.v0.0.1
@@ -121,6 +121,9 @@ spec:
         displayName: Power Config
         kind: PowerConfig
         name: powerconfigs.power.openshift.io
+        version: v1
+      - kind: PowerNodeConfig
+        name: powernodeconfigs.power.openshift.io
         version: v1
       - description: PowerNode is the Schema for the powernodes API
         displayName: Power Node
@@ -206,8 +209,8 @@ spec:
                       - /manager
                     env:
                       - name: RELATED_IMAGE_AGENT
-                        value: quay.io/openshift-kni/kubernetes-power-node-agent:0.0.1
-                    image: quay.io/openshift-kni/kubernetes-power-manager-operator:0.0.1
+                        value: quay.io/openshift-kni/kubernetes-power-node-agent@sha256:a7623b4a696a814645264c5597c423d1168d10eaca1fb217e1cfc17589aefa77
+                    image: quay.io/openshift-kni/kubernetes-power-manager-operator@sha256:8950ae123090a5fd41f5378f9f4c761d09cd1d6ae2af45bc69ad0b8928cc36fc
                     imagePullPolicy: IfNotPresent
                     name: manager
                     resources:
@@ -289,8 +292,8 @@ spec:
     name: Red Hat
     url: https://github.com/openshift-kni/kubernetes-power-manager
   relatedImages:
-    - image: quay.io/openshift-kni/kubernetes-power-node-agent:0.0.1
+    - image: quay.io/openshift-kni/kubernetes-power-node-agent@sha256:a7623b4a696a814645264c5597c423d1168d10eaca1fb217e1cfc17589aefa77
       name: agent
-    - image: quay.io/openshift-kni/kubernetes-power-manager-operator:0.0.1
+    - image: quay.io/openshift-kni/kubernetes-power-manager-operator@sha256:8950ae123090a5fd41f5378f9f4c761d09cd1d6ae2af45bc69ad0b8928cc36fc
       name: manager
   version: 0.0.1

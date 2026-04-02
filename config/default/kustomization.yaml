@@ -16,4 +16,4 @@ kind: Kustomization
 resources:
 - ../crd
 - ../rbac
-- ../manager
+- ../manager/ocp
