@@ -47,16 +47,16 @@ func Test_writeStatusErrors(t *testing.T) {
 	object = &powerv1.Uncore{}
 	assert.Nil(t, writeUpdatedStatusErrsIfRequired(ctx, nil, object, nil), "invalid object should return nil without doing anything")
 
-	object = &powerv1.PowerWorkload{
+	object = &powerv1.Uncore{
 		ObjectMeta: v1.ObjectMeta{
 			UID: "not empty",
 		},
 	}
-	clientMockObj.On("SubResourcePatch", ctx, mock.Anything, "status", &powerv1.PowerWorkload{
+	clientMockObj.On("SubResourcePatch", ctx, mock.Anything, "status", &powerv1.Uncore{
 		ObjectMeta: v1.ObjectMeta{
 			UID: "not empty",
 		},
-		Status: powerv1.PowerWorkloadStatus{
+		Status: powerv1.UncoreStatus{
 			StatusErrors: powerv1.StatusErrors{
 				Errors: []string{"err1"},
 			},
@@ -65,7 +65,7 @@ func Test_writeStatusErrors(t *testing.T) {
 	errorList = fmt.Errorf("err1")
 	assert.Nil(t, writeUpdatedStatusErrsIfRequired(ctx, clientStatusWriter, object, errorList), "API should get updated with object with errors")
 
-	object = &powerv1.PowerWorkload{
+	object = &powerv1.Uncore{
 		ObjectMeta: v1.ObjectMeta{
 			UID: "not empty",
 		},

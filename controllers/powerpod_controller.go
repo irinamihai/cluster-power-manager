@@ -24,6 +24,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	e "errors"
 
@@ -69,12 +70,11 @@ type PowerPodReconciler struct {
 	PowerLibrary        power.Host
 	DPDKTelemetryClient scaling.DPDKTelemetryClient
 	CPUScalingManager   scaling.CPUScalingManager
+	OrphanedPods        map[string]corev1.Pod
 }
 
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
-// +kubebuilder:rbac:groups=power.openshift.io,resources=powerworkloads/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=power.openshift.io,resources=powerprofiles,verbs=get;list;watch
-// +kubebuilder:rbac:groups=power.openshift.io,resources=powernodes,verbs=get;list;watch
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,resourceNames=privileged,verbs=use
 
 func (r *PowerPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -161,26 +161,11 @@ func (r *PowerPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, podNotRunningErr
 	}
 
-	// Get customDevices that need to be considered in the pod.
-	logger.V(5).Info("retrieving custom resources from power node")
-	powernode := &powerv1.PowerNode{}
-	err = r.Get(ctx, client.ObjectKey{
-		Namespace: PowerNamespace,
-		Name:      nodeName,
-	}, powernode)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-		logger.Error(err, "error while trying to retrieve the power node")
-		return ctrl.Result{}, err
-	}
-
-	// Get the Containers of the Pod that are requesting exclusive CPUs or custom devices.
-	logger.V(5).Info("retrieving the containers requested for the exclusive CPUs or Custom Resources", "Custom Resources", powernode.Status.CustomDevices)
-	admissibleContainers := getAdmissibleContainers(pod, powernode.Status.CustomDevices, r.PodResourcesClient, &logger)
+	// Get the Containers of the Pod that are requesting exclusive CPUs.
+	logger.V(5).Info("retrieving the containers requested for exclusive CPUs")
+	admissibleContainers := getAdmissibleContainers(pod, nil, r.PodResourcesClient, &logger)
 	if len(admissibleContainers) == 0 {
-		logger.Info("no containers are requesting exclusive CPUs or Custom Resources")
+		logger.Info("no containers are requesting exclusive CPUs")
 		return ctrl.Result{}, nil
 	}
 	podUID := pod.GetUID()
@@ -191,7 +176,7 @@ func (r *PowerPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Get the power containers requested by containers in the pod.
-	powerContainers, recoveryErrs := r.getPowerProfileRequestsFromContainers(ctx, admissibleContainers, powernode.Status.CustomDevices, pod, &logger)
+	powerContainers, recoveryErrs := r.getPowerProfileRequestsFromContainers(ctx, admissibleContainers, nil, pod, &logger)
 	logger.V(5).Info("retrieved power profiles and containers from pod requests")
 
 	// dpdkContainerAssigned tracks whether a DPDK container in this pod has already
@@ -305,6 +290,10 @@ func (r *PowerPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		logger.Error(err, "error updating the internal state")
 		return ctrl.Result{}, err
 	}
+
+	// Run pool consistency check to detect CPUs in wrong pools
+	r.runPoolConsistencyCheck(logger)
+
 	wrappedErrs := e.Join(recoveryErrs...)
 	if wrappedErrs != nil {
 		logger.Error(wrappedErrs, "recoverable errors")
@@ -663,6 +652,76 @@ func (r *PowerPodReconciler) areCPUsInSharedPool(cpuIDs []uint) bool {
 		}
 	}
 	return true
+}
+
+// runPoolConsistencyCheck iterates all exclusive pools and guaranteed pods to detect
+// CPUs that are in the wrong pool. If a mismatch is found, the pod is annotated to
+// force a re-reconcile by the PowerPod controller.
+func (r *PowerPodReconciler) runPoolConsistencyCheck(logger logr.Logger) {
+	if r.PowerLibrary.GetSharedPool().GetPowerProfile() == nil {
+		return
+	}
+	pools := r.PowerLibrary.GetAllExclusivePools()
+	for _, pool := range *pools {
+		for _, guaranteedPod := range r.State.GuaranteedPods {
+			if err := r.checkPoolConsistency(pool, guaranteedPod, logger); err != nil {
+				logger.Error(err, "pool consistency check failed", "pod", guaranteedPod.Name)
+			}
+		}
+	}
+}
+
+// checkPoolConsistency checks if a guaranteed pod's CPUs are in the correct exclusive pool.
+// If a CPU is found in the wrong pool, the pod is annotated with "PM-updated" to force
+// a re-reconcile. A 20-second cooldown prevents thrashing during normal pool transitions.
+func (r *PowerPodReconciler) checkPoolConsistency(poolFromLibrary power.Pool, guaranteedPod powerv1.GuaranteedPod, logger logr.Logger) error {
+	pod := &corev1.Pod{}
+	poolProfile := poolFromLibrary.GetPowerProfile()
+	if poolProfile == nil {
+		return nil
+	}
+	for _, container := range guaranteedPod.Containers {
+		if container.PowerProfile == poolProfile.Name() {
+			for _, core := range container.ExclusiveCPUs {
+				if !slices.Contains(poolFromLibrary.Cpus().IDs(), core) {
+					if err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: guaranteedPod.Namespace, Name: guaranteedPod.Name}, pod); err != nil {
+						logger.Error(err, "could not retrieve the pod")
+						return err
+					}
+					if !pod.ObjectMeta.DeletionTimestamp.IsZero() || pod.Status.Phase == corev1.PodSucceeded {
+						break
+					}
+					timestamp, exists := r.OrphanedPods[pod.Name].ObjectMeta.Annotations["PM-updated"]
+					if exists {
+						if t, err := strconv.ParseInt(timestamp, 10, 64); err == nil {
+							// 20-second cooldown to ensure pod is not moving from one pool to another
+							if (time.Now().Unix() - int64(t)) > 20 {
+								logger.V(5).Info(fmt.Sprintf("pod %s found with cores in the wrong pool, updating the pod", guaranteedPod.Name))
+								pod.ObjectMeta.Annotations["PM-updated"] = fmt.Sprint(time.Now().Unix())
+								err := r.Client.Update(context.TODO(), pod)
+								if err != nil {
+									logger.Error(err, "could not update the pod")
+									return err
+								}
+								delete(r.OrphanedPods, pod.Name)
+							}
+						} else {
+							logger.Error(err, fmt.Sprintf("error parsing PM-updated annotation in pod %s", guaranteedPod.Name))
+							delete(r.OrphanedPods, pod.Name)
+						}
+					} else {
+						if pod.ObjectMeta.Annotations == nil {
+							pod.ObjectMeta.Annotations = make(map[string]string)
+						}
+						pod.ObjectMeta.Annotations["PM-updated"] = fmt.Sprint(time.Now().Unix())
+						r.OrphanedPods[pod.Name] = *pod
+					}
+					return nil
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // generateCPUScalingOpts translates a CpuScalingPolicy and a set of CPUs

@@ -102,41 +102,6 @@ func (r *PowerConfigReconciler) Reconcile(c context.Context, req ctrl.Request) (
 					}
 				}
 
-				// Make sure all power workloads have been removed
-				powerWorkloads := &powerv1.PowerWorkloadList{}
-				err = r.Client.List(c, powerWorkloads)
-				logger.V(5).Info("retrieving all power workloads in the cluster")
-				if err != nil {
-					logger.Error(err, "error retrieving the power workloads")
-					return ctrl.Result{}, err
-				}
-
-				for _, workload := range powerWorkloads.Items {
-					logger.V(5).Info(fmt.Sprintf("deleting power workload %s", workload.Name))
-					err = r.Client.Delete(c, &workload)
-					if err != nil {
-						logger.Error(err, fmt.Sprintf("error deleting power workload '%s' from cluster", workload.Name))
-						return ctrl.Result{}, err
-					}
-				}
-
-				powerNodes := &powerv1.PowerNodeList{}
-				err = r.Client.List(c, powerNodes)
-				logger.V(5).Info("retrieving all power nodes in the cluster")
-				if err != nil {
-					logger.Error(err, "error retrieving power nodes")
-					return ctrl.Result{}, err
-				}
-
-				for _, node := range powerNodes.Items {
-					logger.V(5).Info(fmt.Sprintf("deleting power nodes %s", node.Name))
-					err = r.Client.Delete(c, &node)
-					if err != nil {
-						logger.Error(err, fmt.Sprintf("error deleting power node '%s' from cluster", node.Name))
-						return ctrl.Result{}, err
-					}
-				}
-
 				// Delete all the PowerNodeStates CRs.
 				powerNodeStates := &powerv1.PowerNodeStateList{}
 				err = r.Client.List(c, powerNodeStates)
@@ -207,13 +172,6 @@ func (r *PowerConfigReconciler) Reconcile(c context.Context, req ctrl.Request) (
 	labelledNodeList := &corev1.NodeList{}
 	listOption := config.Spec.PowerNodeSelector
 
-	// Searching for Custom Devices in PowerConfig
-	customDevices := config.Spec.CustomDevices
-	if len(customDevices) > 0 {
-		logger.V(5).Info("the behaviour of the power node agent will be affected by the following devices.",
-			"Custom Devices", customDevices)
-	}
-
 	logger.V(5).Info("confirming desired nodes match the power node selector")
 	err = r.Client.List(c, labelledNodeList, client.MatchingLabels(listOption))
 	if err != nil {
@@ -224,40 +182,6 @@ func (r *PowerConfigReconciler) Reconcile(c context.Context, req ctrl.Request) (
 	for _, node := range labelledNodeList.Items {
 		logger.V(5).Info("updating the node name")
 		r.State.UpdatePowerNodeData(node.Name)
-
-		powerNode := &powerv1.PowerNode{}
-		err = r.Client.Get(c, client.ObjectKey{
-			Namespace: PowerNamespace,
-			Name:      node.Name,
-		}, powerNode)
-
-		if err != nil {
-			if errors.IsNotFound(err) {
-				logger.V(5).Info(fmt.Sprintf("creating the power node CR %s", node.Name))
-				powerNode = &powerv1.PowerNode{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: PowerNamespace,
-						Name:      node.Name,
-					},
-				}
-
-				err = r.Client.Create(c, powerNode)
-				if err != nil {
-					logger.Error(err, "error creating the power node CR")
-					return ctrl.Result{}, err
-				}
-			} else {
-				return ctrl.Result{}, err
-			}
-		}
-
-		patch := client.MergeFrom(powerNode.DeepCopy())
-		powerNode.Status.CustomDevices = customDevices
-		err = r.Client.Status().Patch(c, powerNode, patch)
-		if err != nil {
-			logger.Error(err, "failed to update power node with custom devices.")
-			return ctrl.Result{}, err
-		}
 
 		// Create PowerNodeState for this node if it doesn't exist
 		powerNodeState := &powerv1.PowerNodeState{}
@@ -290,7 +214,6 @@ func (r *PowerConfigReconciler) Reconcile(c context.Context, req ctrl.Request) (
 
 	patch := client.MergeFrom(config.DeepCopy())
 	config.Status.Nodes = r.State.PowerNodeList
-	config.Spec.CustomDevices = customDevices
 	err = r.Client.Status().Patch(c, config, patch)
 	if err != nil {
 		logger.Error(err, "failed to update the power config")

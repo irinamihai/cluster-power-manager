@@ -16,7 +16,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -263,4 +265,65 @@ func removePowerNodeStatusProfileEntry(ctx context.Context, c client.Client, nod
 		"profile", profileName)
 
 	return nil
+}
+
+func prettifyCoreList(cores []uint) string {
+	prettified := ""
+	sort.Slice(cores, func(i, j int) bool { return cores[i] < cores[j] })
+	for i := 0; i < len(cores); i++ {
+		start := i
+		end := i
+
+		for end < len(cores)-1 {
+			if cores[end+1]-cores[end] == 1 {
+				end++
+			} else {
+				break
+			}
+		}
+
+		if end-start > 0 {
+			prettified += fmt.Sprintf("%d-%d", cores[start], cores[end])
+		} else {
+			prettified += fmt.Sprintf("%d", cores[start])
+		}
+
+		if end < len(cores)-1 {
+			prettified += ","
+		}
+
+		i = end
+	}
+
+	return prettified
+}
+
+// prettifyCStatesMap formats C-states map into a readable string showing enabled/disabled states.
+// Format: "enabled: C1, C1E; disabled: C6"
+func prettifyCStatesMap(states map[string]bool) string {
+	if len(states) == 0 {
+		return ""
+	}
+
+	var enabled, disabled []string
+	for state, isEnabled := range states {
+		if isEnabled {
+			enabled = append(enabled, state)
+		} else {
+			disabled = append(disabled, state)
+		}
+	}
+
+	sort.Strings(enabled)
+	sort.Strings(disabled)
+
+	var parts []string
+	if len(enabled) > 0 {
+		parts = append(parts, "enabled: "+strings.Join(enabled, ","))
+	}
+	if len(disabled) > 0 {
+		parts = append(parts, "disabled: "+strings.Join(disabled, ","))
+	}
+
+	return strings.Join(parts, "; ")
 }

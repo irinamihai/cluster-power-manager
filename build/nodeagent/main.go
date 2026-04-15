@@ -143,17 +143,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "PowerNodeConfig")
 		os.Exit(1)
 	}
-	if err = (&controllers.PowerNodeReconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("PowerNode"),
-		Scheme:       mgr.GetScheme(),
-		State:        powerNodeState,
-		OrphanedPods: make(map[string]corev1.Pod),
-		PowerLibrary: powerLibrary,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PowerNode")
-		os.Exit(1)
-	}
 	if err = (&controllers.PowerPodReconciler{
 		Client:              mgr.GetClient(),
 		Log:                 ctrl.Log.WithName("controllers").WithName("PowerPod"),
@@ -163,6 +152,7 @@ func main() {
 		PowerLibrary:        powerLibrary,
 		DPDKTelemetryClient: dpdkClient,
 		CPUScalingManager:   cpuScalingMgr,
+		OrphanedPods:        make(map[string]corev1.Pod),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PowerPod")
 		os.Exit(1)

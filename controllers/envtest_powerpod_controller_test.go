@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/intel/power-optimization-library/pkg/power"
 	powerv1 "github.com/openshift-kni/kubernetes-power-manager/api/v1"
 	"github.com/openshift-kni/kubernetes-power-manager/pkg/podresourcesclient"
 	"github.com/openshift-kni/kubernetes-power-manager/pkg/podstate"
@@ -69,6 +70,10 @@ func createPodReconcilerWithEnvTest(
 		CpuControlPlaneClient: fakePodResClient,
 	}
 
+	// Mock GetAllExclusivePools for pool consistency checks.
+	emptyPools := make([]power.Pool, 0)
+	mockHost.On("GetAllExclusivePools").Return(&emptyPools)
+
 	return &PowerPodReconciler{
 		Client:             cl,
 		Log:                ctrl.Log.WithName("testing"),
@@ -76,11 +81,12 @@ func createPodReconcilerWithEnvTest(
 		State:              state,
 		PodResourcesClient: *podResourcesClient,
 		PowerLibrary:       mockHost,
+		OrphanedPods:       make(map[string]corev1.Pod),
 	}
 }
 
 // createPodReconcilePrereqs creates the common prerequisite resources for pod reconciliation
-// envtests: Node, PowerNode, PowerNodeState, and the specified PowerProfiles.
+// envtests: Node, PowerNodeState, and the specified PowerProfiles.
 func createPodReconcilePrereqs(t *testing.T, cl client.Client, ctx context.Context, nodeName string, profileNames ...string) {
 	t.Helper()
 
@@ -91,9 +97,6 @@ func createPodReconcilePrereqs(t *testing.T, cl client.Client, ctx context.Conte
 				corev1.ResourceCPU: *resource.NewQuantity(16, resource.DecimalSI),
 			},
 		},
-	}))
-	require.NoError(t, cl.Create(ctx, &powerv1.PowerNode{
-		ObjectMeta: metav1.ObjectMeta{Name: nodeName, Namespace: PowerNamespace},
 	}))
 	createTestPowerNodeState(t, cl, fmt.Sprintf("%s-power-state", nodeName))
 	for _, name := range profileNames {

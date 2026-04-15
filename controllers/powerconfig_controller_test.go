@@ -43,8 +43,7 @@ func createConfigReconcilerObject(objs []client.Object) (*PowerConfigReconciler,
 	}
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(objs...).
-		WithStatusSubresource(&powerv1.PowerConfig{}).
-		WithStatusSubresource(&powerv1.PowerNode{}).Build()
+		WithStatusSubresource(&powerv1.PowerConfig{}).Build()
 
 	state := state.NewPowerNodeData()
 
@@ -125,15 +124,6 @@ func TestPowerConfig_Reconcile_Creation(t *testing.T) {
 		}, ds)
 		if err != nil {
 			t.Errorf("%s failed: expected daemonSet '%s' to have been created", tc.testCase, NodeAgentDSName)
-		}
-
-		powerNode := &powerv1.PowerNode{}
-		err = r.Client.Get(context.TODO(), client.ObjectKey{
-			Name:      tc.nodeName,
-			Namespace: PowerNamespace,
-		}, powerNode)
-		if err != nil {
-			t.Errorf("%s failed: expected power node object '%s' to have been created", tc.testCase, tc.nodeName)
 		}
 
 		powerNodeState := &powerv1.PowerNodeState{}
@@ -291,21 +281,8 @@ func TestPowerConfig_Reconcile_CustomDevices_Creation(t *testing.T) {
 			t.Errorf("%s failed: expected power config object '%s' to have been created successfully", tc.testCase, tc.configName)
 		}
 
-		powerNode := &powerv1.PowerNode{}
-		err = r.Client.Get(context.TODO(), client.ObjectKey{
-			Name:      tc.nodeName,
-			Namespace: PowerNamespace,
-		}, powerNode)
-		if err != nil {
-			t.Error(err)
-			t.Fatalf("%s - error retrieving the power node", tc.testCase)
-		}
-
 		if !reflect.DeepEqual(config.Spec.CustomDevices, tc.expectedCustomDevices) {
 			t.Errorf("%s failed: expected customDevices for the power config object to be %v, got %v", tc.testCase, config.Spec.CustomDevices, tc.expectedCustomDevices)
-		}
-		if !reflect.DeepEqual(powerNode.Status.CustomDevices, tc.expectedCustomDevices) {
-			t.Errorf("%s failed: expected customDevices for the power node object to be %v, got %v", tc.testCase, powerNode.Status.CustomDevices, tc.expectedCustomDevices)
 		}
 	}
 }
@@ -484,21 +461,8 @@ func TestPowerConfig_Reconcile_CustomDevices_Update(t *testing.T) {
 			t.Errorf("%s failed: expected power config object '%s' to have been created successfully", tc.testCase, tc.configName)
 		}
 
-		powerNode := &powerv1.PowerNode{}
-		err = r.Client.Get(context.TODO(), client.ObjectKey{
-			Name:      tc.nodeName,
-			Namespace: PowerNamespace,
-		}, powerNode)
-		if err != nil {
-			t.Error(err)
-			t.Fatalf("%s - error retrieving the power node", tc.testCase)
-		}
-
 		if !reflect.DeepEqual(config.Spec.CustomDevices, tc.expectedCustomDevices) {
 			t.Errorf("%s failed: expected customDevices for the power config object to be %v, got %v", tc.testCase, config.Spec.CustomDevices, tc.expectedCustomDevices)
-		}
-		if !reflect.DeepEqual(powerNode.Status.CustomDevices, tc.expectedCustomDevices) {
-			t.Errorf("%s failed: expected customDevices for the power node object to be %v, got %v", tc.testCase, powerNode.Status.CustomDevices, tc.expectedCustomDevices)
 		}
 	}
 }
@@ -542,20 +506,6 @@ func TestPowerConfig_Reconcile_Deletion(t *testing.T) {
 							Epp: "performance",
 						},
 					},
-				},
-				&powerv1.PowerWorkload{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "performance-TestNode",
-						Namespace: PowerNamespace,
-					},
-					Spec: powerv1.PowerWorkloadSpec{},
-				},
-				&powerv1.PowerNode{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "TestNode",
-						Namespace: PowerNamespace,
-					},
-					Spec: powerv1.PowerNodeSpec{},
 				},
 				&powerv1.PowerNodeState{
 					ObjectMeta: metav1.ObjectMeta{
@@ -605,28 +555,6 @@ func TestPowerConfig_Reconcile_Deletion(t *testing.T) {
 
 		if len(profiles.Items) != tc.expectedNumberOfObjects {
 			t.Errorf("%s failed: expected number of power profile objects is %v, got %v", tc.testCase, tc.expectedNumberOfObjects, len(profiles.Items))
-		}
-
-		workloads := &powerv1.PowerWorkloadList{}
-		err = r.Client.List(context.TODO(), workloads)
-		if err != nil {
-			t.Error(err)
-			t.Fatalf("%s - error retrieving the power workload objects", tc.testCase)
-		}
-
-		if len(workloads.Items) != tc.expectedNumberOfObjects {
-			t.Errorf("%s failed: expected number of power workload objects is %v, got %v", tc.testCase, tc.expectedNumberOfObjects, len(workloads.Items))
-		}
-
-		powerNodes := &powerv1.PowerNodeList{}
-		err = r.Client.List(context.TODO(), powerNodes)
-		if err != nil {
-			t.Error(err)
-			t.Fatalf("%s - error retrieving power node objects", tc.testCase)
-		}
-
-		if len(powerNodes.Items) != tc.expectedNumberOfObjects {
-			t.Errorf("%s failed: expected number of power node objects is %v, got %v", tc.testCase, tc.expectedNumberOfObjects, len(powerNodes.Items))
 		}
 
 		powerNodeStates := &powerv1.PowerNodeStateList{}
