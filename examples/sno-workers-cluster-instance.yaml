@@ -1,0 +1,171 @@
+apiVersion: siteconfig.open-cluster-management.io/v1alpha1
+kind: ClusterInstance
+metadata:
+  name: "sno-worker-cnfdg34-cnfdg37"
+  namespace: "sno-worker-cnfdg34-cnfdg37"
+spec:
+  additionalNTPSources:
+  - 10.2.32.38
+  - 10.2.32.37
+  - 10.11.160.238
+  - clock.redhat.com
+  apiVIPs:
+  - 10.6.34.55
+  baseDomain: ptp.eng.rdu2.dc.redhat.com
+  clusterImageSetNameRef: img4.20.5-multi-appsub
+  clusterName: mixed-multi-node
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  clusterType: HighlyAvailable
+  cpuArchitecture: multi
+  cpuPartitioningMode: AllNodes
+  diskEncryption:
+    type: none
+  extraAnnotations:
+    ManagedCluster:
+      import.open-cluster-management.io/disable-auto-import: "true"
+  extraLabels:
+    ManagedCluster:
+      cluster-version: v4.20.5
+      sno-worker-policy: v1
+  extraManifestsRefs:
+  - name: sno-ran-du-extra-manifest-1
+  holdInstallation: false
+  ingressVIPs:
+  - 10.6.34.56
+  installConfigOverrides: '{"capabilities":{"baselineCapabilitySet":"None","additionalEnabledCapabilities":["NodeTuning","OperatorLifecycleManager","Ingress"]}}'
+  machineNetwork:
+  - cidr: 10.6.34.0/24
+  networkType: OVNKubernetes
+  nodes:
+    # Master Node: cnfdg34 (Intel x86_64)
+    - hostName: "cnfdg34.ptp.eng.rdu2.dc.redhat.com"
+      role: "master"
+      ironicInspect: ""
+      templateRefs:
+        - name: ai-node-templates-v1
+          namespace: open-cluster-management
+      bmcAddress: "idrac-virtualmedia+https://10.6.36.83/redfish/v1/Systems/System.Embedded.1"
+      bmcCredentialsName:
+        name: "dell-bmh-secret"
+      bootMACAddress: "30:d0:42:d9:3c:94"
+      bootMode: "UEFI"
+      rootDeviceHints:
+        wwn: "0x5002538e117115d3"
+      nodeNetwork:
+        interfaces:
+          - name: "eno12399"
+            macAddress: "30:d0:42:d9:3c:94"
+        config:
+          interfaces:
+            - name: eno12399
+              type: ethernet
+              state: up
+              ipv4:
+                enabled: true
+                address:
+                  - ip: 10.6.34.138
+                    prefix-length: 24
+              ipv6:
+                enabled: false
+          dns-resolver:
+            config:
+              search:
+                - redhat.com
+              server:
+                - 10.11.5.160
+                - 10.2.70.215
+          routes:
+            config:
+              - destination: 0.0.0.0/0
+                next-hop-address: 10.6.34.254
+                next-hop-interface: eno12399
+                table-id: 254
+    # Worker Node: cnfdg37 (ARM aarch64)
+    - hostName: "cnfdg37.ptp.eng.rdu2.dc.redhat.com"
+      role: "worker"
+      ironicInspect: ""
+      cpuArchitecture: aarch64
+      extraAnnotations:
+        InfraEnv:
+          infraenv.agent-install.openshift.io/ironic-agent-image-override: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:8135dfc74b557cb4d01991696381980ddb9526d6090726a9bfe4359f3d2e9012
+      templateRefs:
+        - name: ai-node-templates-v1
+          namespace: open-cluster-management
+      bmcAddress: "redfish-virtualmedia://10.6.36.125/redfish/v1/Systems/1"
+      bmcCredentialsName:
+        name: "bmh-secret"
+      bootMACAddress: "b8:3f:d2:32:97:28"
+      bootMode: "UEFI"
+      nodeNetwork:
+        interfaces:
+          - name: "enP3p1s0f0np0"
+            macAddress: "b8:3f:d2:32:97:28"
+        config:
+          interfaces:
+            - name: enP3p1s0f0np0
+              type: ethernet
+              state: up
+              ipv4:
+                enabled: true
+                dhcp: false
+                address:
+                  - ip: 10.6.34.90
+                    prefix-length: 24
+              ipv6:
+                enabled: false
+          dns-resolver:
+            config:
+              server:
+                - 10.11.5.160
+                - 10.2.70.215
+          routes:
+            config:
+              - destination: 0.0.0.0/0
+                next-hop-address: 10.6.34.254
+                next-hop-interface: enP3p1s0f0np0
+                table-id: 254
+    # Worker Node: cnfdf20 (supermicro)
+    - hostName: "cnfdf20.ptp.eng.rdu2.dc.redhat.com"
+      role: "worker"
+      ironicInspect: ""
+      templateRefs:
+        - name: ai-node-templates-v1
+          namespace: open-cluster-management
+      bmcAddress: "idrac-virtualmedia+https://10.6.36.83/redfish/v1/Systems/System.Embedded.1"
+      bmcCredentialsName:
+        name: "dell-bmh-secret"
+      bootMACAddress: "30:d0:42:d9:3c:94"
+      bootMode: "UEFI"
+      rootDeviceHints:
+        wwn: "0x5002538e117115d3"
+      nodeNetwork:
+        interfaces:
+          - name: "eno12399"
+            macAddress: "30:d0:42:d9:3c:94"
+        config:
+          interfaces:
+            - name: eno12399
+              type: ethernet
+              state: up
+              ipv4:
+                enabled: true
+                address:
+                  - ip: 10.6.34.138
+                    prefix-length: 24
+              ipv6:
+                enabled: false
+          dns-resolver:
+            config:
+              search:
+                - redhat.com
+              server:
+                - 10.11.5.160
+                - 10.2.70.215
+          routes:
+            config:
+              - destination: 0.0.0.0/0
+                next-hop-address: 10.6.34.254
+                next-hop-interface: eno12399
+                table-id: 254

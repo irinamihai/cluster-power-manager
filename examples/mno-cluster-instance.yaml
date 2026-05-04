@@ -1,0 +1,296 @@
+apiVersion: siteconfig.open-cluster-management.io/v1alpha1
+kind: ClusterInstance
+metadata:
+  name: cnfdf20
+  namespace: cnfdf20
+spec:
+  additionalNTPSources:
+  - 1.pool.ntp.org
+  apiVIPs:
+  - 10.8.34.90
+  baseDomain: telco5gran.eng.rdu2.redhat.com
+  clusterImageSetNameRef: "img4.20.8-x86-64-appsub"
+  clusterName: cnfdf20
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  clusterType: HighlyAvailable
+  cpuArchitecture: x86_64
+  cpuPartitioningMode: AllNodes
+  extraLabels:
+    ManagedCluster:
+      standard-ran-du-policy: v1
+      cluster-version: v4.20.8
+      manufacturer: supermicro
+  extraManifestsRefs:
+  - name: extra-manifest-configmap
+  holdInstallation: false
+  ingressVIPs:
+  - 10.8.34.91
+  networkType: OVNKubernetes
+  nodes:
+  - automatedCleaningMode: disabled
+    bmcAddress: redfish-virtualmedia+https://10.8.35.43/redfish/v1/Systems/1
+    bmcCredentialsName:
+      name: cnfdf20-bmc-secret
+    bootMACAddress: b4:96:91:a3:f2:c4
+    bootMode: UEFI
+    hostName: cnfdf20.telco5gran.eng.rdu2.redhat.com
+    ironicInspect: ""
+    nodeNetwork:
+      config:
+        dns-resolver:
+          config:
+            search:
+            - telco5gran.eng.rdu2.redhat.com
+            server:
+            - 10.11.5.160
+        interfaces:
+        - ipv4:
+            address:
+            - ip: 10.8.34.43
+              prefix-length: 24
+            enabled: true
+          ipv6:
+            enabled: false
+          name: ens1f0
+          state: up
+          type: ethernet
+        - ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+          name: ens1f1
+          state: up
+          type: ethernet
+        routes:
+          config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 10.8.34.254
+            next-hop-interface: ens1f0
+            table-id: 254
+      interfaces:
+      - macAddress: b4:96:91:a3:f2:c4
+        name: ens1f0
+      - macAddress: b4:96:91:a3:f2:c5
+        name: ens1f1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/disk/by-path/pci-0000:05:00.0-nvme-1
+    templateRefs:
+    - name: ai-node-templates-v1
+      namespace: open-cluster-management
+  - automatedCleaningMode: disabled
+    bmcAddress: redfish-virtualmedia+https://10.8.35.70/redfish/v1/Systems/1
+    bmcCredentialsName:
+      name: cnfdf37-bmc-secret
+    bootMACAddress: 3c:ec:ef:79:7c:74
+    bootMode: UEFI
+    hostName: cnfdf37.telco5gran.eng.rdu2.redhat.com
+    ironicInspect: ""
+    nodeNetwork:
+      config:
+        dns-resolver:
+          config:
+            search:
+            - telco5gran.eng.rdu2.redhat.com
+            server:
+            - 10.11.5.160
+        interfaces:
+        - ipv4:
+            address:
+            - ip: 10.8.34.128
+              prefix-length: 24
+            enabled: true
+          ipv6:
+            enabled: false
+          name: ens2f0
+          state: up
+          type: ethernet
+        - ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+          name: ens2f1
+          state: up
+          type: ethernet
+        routes:
+          config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 10.8.34.254
+            next-hop-interface: ens2f0
+            table-id: 254
+      interfaces:
+      - macAddress: 3c:ec:ef:79:7c:74
+        name: ens2f0
+      - macAddress: 3c:ec:ef:79:7c:75
+        name: ens2f1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/disk/by-path/pci-0000:00:17.0-ata-1.0
+    templateRefs:
+    - name: ai-node-templates-v1
+      namespace: open-cluster-management
+  - automatedCleaningMode: disabled
+    bmcAddress: redfish-virtualmedia+https://10.8.35.71/redfish/v1/Systems/1
+    bmcCredentialsName:
+      name: cnfdf38-bmc-secret
+    bootMACAddress: 3c:ec:ef:7d:32:cb
+    bootMode: UEFI
+    hostName: cnfdf38.telco5gran.eng.rdu2.redhat.com
+    ironicInspect: ""
+    nodeNetwork:
+      config:
+        dns-resolver:
+          config:
+            search:
+            - telco5gran.eng.rdu2.redhat.com
+            server:
+            - 10.11.5.160
+        interfaces:
+        - ipv4:
+            address:
+            - ip: 10.8.34.148
+              prefix-length: 24
+            enabled: true
+          ipv6:
+            enabled: false
+          name: ens1f1
+          state: up
+          type: ethernet
+        - ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+          name: ens1f0
+          state: up
+          type: ethernet
+        routes:
+          config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 10.8.34.254
+            next-hop-interface: ens1f1
+            table-id: 254
+      interfaces:
+      - macAddress: 3c:ec:ef:7d:32:ca
+        name: ens1f0
+      - macAddress: 3c:ec:ef:7d:32:cb
+        name: ens1f1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/disk/by-path/pci-0000:00:17.0-ata-1.0
+    templateRefs:
+    - name: ai-node-templates-v1
+      namespace: open-cluster-management
+  # Worker node 1: cnfdf09
+  - automatedCleaningMode: disabled
+    bmcAddress: redfish-virtualmedia+https://10.8.35.27/redfish/v1/Systems/1
+    bmcCredentialsName:
+      name: cnfdf09-bmc-secret
+    bootMACAddress: 3c:ec:ef:5f:14:8a
+    bootMode: UEFI
+    hostName: cnfdf09.telco5gran.eng.rdu2.redhat.com
+    ironicInspect: ""
+    nodeNetwork:
+      config:
+        dns-resolver:
+          config:
+            search:
+            - telco5gran.eng.rdu2.redhat.com
+            server:
+            - 10.11.5.160
+        interfaces:
+        - ipv4:
+            address:
+            - ip: 10.8.34.27
+              prefix-length: 24
+            enabled: true
+          ipv6:
+            enabled: false
+          name: eno1
+          state: up
+          type: ethernet
+        - ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+          name: eno2
+          state: up
+          type: ethernet
+        routes:
+          config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 10.8.34.254
+            next-hop-interface: eno1
+            table-id: 254
+      interfaces:
+      - macAddress: 3c:ec:ef:5f:14:8a
+        name: eno1
+      - macAddress: 3c:ec:ef:5f:14:8b
+        name: eno2
+    role: worker
+    #rootDeviceHints:
+    #  deviceName: /dev/disk/by-path/pci-0000:04:00.0-nvme-1
+    templateRefs:
+    - name: ai-node-templates-v1
+      namespace: open-cluster-management
+  # Worker node 2: cnfdf19
+  - automatedCleaningMode: disabled
+    bmcAddress: redfish-virtualmedia+https://10.8.35.42/redfish/v1/Systems/1
+    bmcCredentialsName:
+      name: cnfdf19-bmc-secret
+    bootMACAddress: b4:96:91:a3:ef:60
+    bootMode: UEFI
+    hostName: cnfdf19.telco5gran.eng.rdu2.redhat.com
+    ironicInspect: ""
+    nodeNetwork:
+      config:
+        dns-resolver:
+          config:
+            search:
+            - telco5gran.eng.rdu2.redhat.com
+            server:
+            - 10.11.5.160
+        interfaces:
+        - ipv4:
+            address:
+            - ip: 10.8.34.42
+              prefix-length: 24
+            enabled: true
+          ipv6:
+            enabled: false
+          name: ens1f0
+          state: up
+          type: ethernet
+        - ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+          name: ens1f1
+          state: up
+          type: ethernet
+        routes:
+          config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 10.8.34.254
+            next-hop-interface: ens1f0 
+            table-id: 254
+      interfaces:
+      - macAddress: b4:96:91:a3:ef:60
+        name: ens1f0
+      - macAddress: b4:96:91:a3:ef:61
+        name: ens1f1
+    role: worker
+    #rootDeviceHints: # only one disk anyway
+    #  deviceName: /dev/disk/by-path/pci-0000:05:00.0-nvme-1
+    templateRefs:
+    - name: ai-node-templates-v1
+      namespace: open-cluster-management
+  pullSecretRef:
+    name: pull-secret
+  serviceNetwork:
+  - cidr: 172.30.0.0/16
+  sshPublicKey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHonn4FHopUzcgOViUUrJ6IhB8xcR5tNoT7ntPD3dCY1 imihai@redhat.com
+  templateRefs:
+  - name: ai-cluster-templates-v1
+    namespace: open-cluster-management
