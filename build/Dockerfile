@@ -25,6 +25,7 @@ COPY go.sum go.sum
 COPY vendor/ vendor/
 # Copy the go source
 COPY build/manager/main.go main.go
+COPY build/common/ build/common/
 COPY api/ api/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
